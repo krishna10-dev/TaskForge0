@@ -1,0 +1,242 @@
+/* FocusMode.css - Focus Mode Styling for Precision Orchestrator */
+
+.focus-mode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* Timer Section */
+.focus-timer-section {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.focus-session-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--dashboard-on-surface-variant);
+}
+
+.focus-timer-display {
+  font-family: var(--dashboard-font-headline);
+  font-size: clamp(6rem, 15vw, 10rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--dashboard-primary);
+  line-height: 1;
+  margin: 20px 0;
+  user-select: none;
+}
+
+.focus-timer-controls {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+}
+
+.focus-control-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.focus-control-btn:hover {
+  opacity: 0.7;
+}
+
+.focus-btn-pause {
+  color: var(--dashboard-primary);
+}
+
+.focus-btn-complete {
+  color: var(--dashboard-on-tertiary-container);
+}
+
+/* Current Focus Card */
+.focus-task-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--dashboard-surface-container-lowest);
+  padding: 32px;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(25, 28, 30, 0.06);
+  margin-bottom: 60px;
+}
+
+.focus-card-blade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, var(--dashboard-primary), var(--dashboard-on-primary-container));
+}
+
+.focus-card-label {
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dashboard-on-tertiary-container);
+}
+
+.focus-card-title {
+  font-family: var(--dashboard-font-headline);
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 12px 0 20px;
+  color: var(--dashboard-on-surface);
+  line-height: 1.2;
+}
+
+.focus-card-meta {
+  display: flex;
+  gap: 24px;
+  color: var(--dashboard-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.focus-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.focus-card-more-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background-color: var(--dashboard-surface-container-high);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.focus-card-more-btn:hover {
+  background-color: var(--dashboard-surface-container-highest);
+}
+
+/* Secondary Grid */
+.focus-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 60px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .focus-secondary-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.focus-section-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--dashboard-on-surface-variant);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.focus-section-title::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background-color: var(--dashboard-outline-variant);
+  opacity: 0.3;
+}
+
+/* Next Up List */
+.focus-next-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.focus-next-item {
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(198, 198, 205, 0.1);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.focus-next-item:hover {
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.focus-next-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--dashboard-on-surface);
+}
+
+.focus-next-estimate {
+  font-size: 0.75rem;
+  color: var(--dashboard-on-surface-variant);
+  margin-top: 4px;
+}
+
+/* Focus Feed */
+.focus-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.focus-feed-item {
+  display: flex;
+  gap: 16px;
+}
+
+.focus-feed-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.focus-feed-content p {
+  font-size: 0.875rem;
+  color: var(--dashboard-on-surface);
+  line-height: 1.4;
+}
+
+.focus-feed-time {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--dashboard-on-surface-variant);
+  margin-top: 6px;
+  display: block;
+}

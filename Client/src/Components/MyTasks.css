@@ -1,0 +1,252 @@
+/* MyTasks.css - Kanban Board Styling for Precision Orchestrator */
+
+.mytasks-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.mytasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.mytasks-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--dashboard-on-surface);
+}
+
+.mytasks-view-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.mytasks-view-btn {
+  background: none;
+  border: 1px solid var(--dashboard-outline-variant);
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dashboard-on-surface-variant);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mytasks-view-btn-active {
+  background-color: var(--dashboard-primary);
+  color: var(--dashboard-on-primary);
+  border-color: var(--dashboard-primary);
+}
+
+/* Kanban Board Layout */
+.kanban-board {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dashboard-outline-variant) transparent;
+}
+
+.kanban-board::-webkit-scrollbar {
+  height: 6px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+  background-color: var(--dashboard-outline-variant);
+  border-radius: 20px;
+}
+
+/* Column Styling */
+.kanban-column {
+  min-width: 320px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  margin-bottom: 8px;
+}
+
+.kanban-column-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kanban-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.kanban-column-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dashboard-on-surface-variant);
+}
+
+.kanban-count {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background-color: var(--dashboard-surface-container-high);
+  color: var(--dashboard-on-surface-variant);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.kanban-column-actions {
+  color: var(--dashboard-on-surface-variant);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.kanban-column-actions:hover {
+  opacity: 1;
+}
+
+/* Card Styling */
+.kanban-card {
+  background-color: var(--dashboard-surface-container-lowest);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(198, 198, 205, 0.1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: grab;
+}
+
+.kanban-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
+}
+
+.kanban-card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+.kanban-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kanban-card-tag {
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.kanban-card-id {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--dashboard-outline);
+}
+
+.kanban-card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: var(--dashboard-on-surface);
+}
+
+.kanban-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.kanban-team-stack {
+  display: flex;
+  align-items: center;
+}
+
+.kanban-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--dashboard-surface-container-lowest);
+  margin-left: -8px;
+}
+
+.kanban-avatar:first-child {
+  margin-left: 0;
+}
+
+.kanban-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dashboard-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Progress Blade Component */
+.kanban-progress-container {
+  margin-bottom: 16px;
+}
+
+.kanban-progress-label-box {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--dashboard-on-surface-variant);
+}
+
+.kanban-progress-bg {
+  height: 6px;
+  background-color: var(--dashboard-surface-container);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.kanban-progress-fill {
+  height: 100%;
+  background-color: var(--dashboard-primary);
+  border-radius: 9999px;
+}
+
+/* Done Card Specific */
+.kanban-card-done {
+  opacity: 0.7;
+  background-color: var(--dashboard-surface-container-low);
+}
+
+.kanban-card-done .kanban-card-title {
+  text-decoration: line-through;
+  color: var(--dashboard-on-surface-variant);
+}
