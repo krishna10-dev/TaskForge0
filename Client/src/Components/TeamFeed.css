@@ -45,10 +45,132 @@
   font-size: 0.875rem;
 }
 
+/* Post Box Styling */
+.feed-post-container {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 32px;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.feed-post-box textarea {
+  width: 100%;
+  min-height: 80px;
+  border: none;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  resize: none;
+  outline: none;
+  color: var(--dashboard-on-surface);
+}
+
+.feed-post-box textarea:focus {
+  background: #f1f5f9;
+}
+
+.feed-post-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.post-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.post-tools button {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.post-tools button:hover {
+  background: #f1f5f9;
+  color: var(--dashboard-primary);
+}
+
+.feed-submit-btn {
+  background: var(--dashboard-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.feed-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Filter Bar Styling */
+.feed-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.filter-tab {
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tab:hover {
+  border-color: #cbd5e1;
+}
+
+.filter-tab.active {
+  background: var(--dashboard-on-primary-container);
+  color: white;
+  border-color: var(--dashboard-on-primary-container);
+}
+
+.empty-feed {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-feed span {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
 .activity-stream {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.animate-in {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .stream-group-label {

@@ -1,45 +1,225 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { updateTask, deleteTask } from '../api';
 import './MyTasks.css';
 
 // Reusable Kanban Card Component
-const KanbanCard = ({ id, tag, tagBg, tagColor, title, accent, team, metaIcon, metaValue, progress, status }) => (
-  <div className={`kanban-card ${status === 'Done' ? 'kanban-card-done' : ''}`}>
-    <div className="kanban-card-accent" style={{ background: accent }}></div>
-    <div className="kanban-card-header">
-      <span className="kanban-card-tag" style={{ backgroundColor: tagBg, color: tagColor }}>{tag}</span>
-      <span className="kanban-card-id">{id}</span>
-    </div>
-    <h4 className="kanban-card-title">{title}</h4>
-    
-    {progress !== undefined && (
-      <div className="kanban-progress-container">
-        <div className="kanban-progress-label-box">
-          <span>PROGRESS</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="kanban-progress-bg">
-          <div className="kanban-progress-fill" style={{ width: `${progress}%` }}></div>
-        </div>
-      </div>
-    )}
+const KanbanCard = ({ task, onClick, onDragStart }) => {
+  const { id, title, priority, status, dueDate, project } = task;
+  
+  const tagBg = priority === 'High' ? 'var(--dashboard-error-container)' : 
+                priority === 'Medium' ? 'var(--dashboard-secondary-container)' : 
+                'var(--dashboard-surface-container-high)';
+  
+  const tagColor = priority === 'High' ? 'var(--dashboard-error)' : 
+                   priority === 'Medium' ? 'var(--dashboard-on-secondary-container)' : 
+                   'var(--dashboard-on-surface-variant)';
 
-    <div className="kanban-card-footer">
-      <div className="kanban-team-stack">
-        {team.map((avatar, idx) => (
-          <img key={idx} alt="Assignee" className="kanban-avatar" src={avatar} />
-        ))}
+  const accent = status === 'Done' ? '#14b8a6' : 
+                 status === 'In Progress' ? 'linear-gradient(to right, #60a5fa, #2563eb)' : 
+                 'linear-gradient(to right, #e2e8f0, #94a3b8)';
+
+  const daysLeft = dueDate ? Math.ceil((new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+
+  return (
+    <div 
+      className={`kanban-card ${status === 'Done' ? 'kanban-card-done' : ''}`}
+      onClick={() => onClick(task)}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('taskId', task.id);
+        if(onDragStart) onDragStart(e, task);
+      }}
+    >
+      <div className="kanban-card-accent" style={{ background: accent }}></div>
+      <div className="kanban-card-header">
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span className="kanban-card-tag" style={{ backgroundColor: tagBg, color: tagColor }}>{priority}</span>
+          <span className="kanban-card-tag" style={{ backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '10px' }}>{project}</span>
+        </div>
+        <span className="kanban-card-id">#{id}</span>
       </div>
-      <div className="kanban-meta">
-        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{metaIcon}</span>
-        <span>{metaValue}</span>
+      <h4 className="kanban-card-title">{title}</h4>
+      
+      <div className="kanban-card-footer">
+        <div className="kanban-team-stack">
+          {status === 'Done' ? (
+            <span className="material-symbols-outlined" style={{fontSize: '20px', color: '#14b8a6'}}>task_alt</span>
+          ) : (
+            <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#94a3b8'}}>person</span>
+          )}
+        </div>
+        <div className="kanban-meta">
+          {status !== 'Done' && daysLeft !== null && (
+            <span style={{ 
+              color: daysLeft < 0 ? '#ba1a1a' : daysLeft < 3 ? '#fbbf24' : '#94a3b8',
+              fontSize: '11px',
+              fontWeight: '600',
+              marginRight: '8px'
+            }}>
+              {daysLeft < 0 ? 'Overdue' : daysLeft === 0 ? 'Today' : `${daysLeft}d left`}
+            </span>
+          )}
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{status === 'Done' ? 'verified' : 'calendar_today'}</span>
+          <span>{status === 'Done' ? 'Completed' : (dueDate ? new Date(dueDate).toLocaleDateString() : 'No date')}</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+// Task Details Modal Component
+const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTask, setEditedTask] = useState({ ...task });
+
+  if (!task) return null;
+
+  const handleSave = async () => {
+    try {
+      await updateTask(task.id, editedTask);
+      onUpdate();
+      onClose();
+    } catch {
+      alert('Failed to update task');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask(task.id);
+        onDelete();
+        onClose();
+      } catch {
+        alert('Failed to delete task');
+      }
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="task-details-modal">
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">Task Details</h2>
+            <p className="modal-subtitle">#{task.id} • Registered in {task.project}</p>
+          </div>
+          <button className="close-btn" onClick={onClose}>
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div className="modal-content">
+          <div className="details-grid">
+            <div className="details-main">
+              <div className="detail-group">
+                <label>Title</label>
+                {isEditing ? (
+                  <input 
+                    type="text" 
+                    value={editedTask.title} 
+                    onChange={(e) => setEditedTask({...editedTask, title: e.target.value})}
+                    className="edit-input"
+                  />
+                ) : (
+                  <h3>{task.title}</h3>
+                )}
+              </div>
+              <div className="detail-group">
+                <label>Description</label>
+                {isEditing ? (
+                  <textarea 
+                    value={editedTask.description} 
+                    onChange={(e) => setEditedTask({...editedTask, description: e.target.value})}
+                    className="edit-textarea"
+                    rows="5"
+                  />
+                ) : (
+                  <p>{task.description || 'No description provided.'}</p>
+                )}
+              </div>
+            </div>
+
+            <aside className="details-sidebar">
+              <div className="detail-sidebar-item">
+                <label>Status</label>
+                <select 
+                  value={editedTask.status} 
+                  disabled={!isEditing}
+                  onChange={(e) => setEditedTask({...editedTask, status: e.target.value})}
+                  className="detail-select"
+                >
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+              <div className="detail-sidebar-item">
+                <label>Priority</label>
+                <select 
+                  value={editedTask.priority} 
+                  disabled={!isEditing}
+                  onChange={(e) => setEditedTask({...editedTask, priority: e.target.value})}
+                  className="detail-select"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+              <div className="detail-sidebar-item">
+                <label>Due Date</label>
+                <input 
+                  type="date" 
+                  value={editedTask.dueDate ? editedTask.dueDate.split('T')[0] : ''} 
+                  disabled={!isEditing}
+                  onChange={(e) => setEditedTask({...editedTask, dueDate: e.target.value})}
+                  className="detail-input"
+                />
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <div className="footer-left">
+            <button className="delete-task-btn" onClick={handleDelete}>
+              <span className="material-symbols-outlined">delete</span>
+              Delete Task
+            </button>
+          </div>
+          <div className="footer-right">
+            {isEditing ? (
+              <>
+                <button className="action-btn-cancel" onClick={() => setIsEditing(false)}>Cancel</button>
+                <button className="action-btn-create" onClick={handleSave}>Save Changes</button>
+              </>
+            ) : (
+              <button className="action-btn-create" onClick={() => setIsEditing(true)}>
+                <span className="material-symbols-outlined" style={{fontSize: '18px'}}>edit</span>
+                Edit Task
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Reusable Kanban Column Component
-const KanbanColumn = ({ title, count, color, children }) => (
-  <div className="kanban-column">
+const KanbanColumn = ({ title, count, color, onDrop, children }) => (
+  <div 
+    className="kanban-column"
+    onDragOver={(e) => e.preventDefault()}
+    onDrop={(e) => {
+      e.preventDefault();
+      const taskId = e.dataTransfer.getData('taskId');
+      if (taskId && onDrop) {
+        onDrop(taskId, title);
+      }
+    }}
+  >
     <div className="kanban-column-header">
       <div className="kanban-column-title-box">
         <span className="kanban-dot" style={{ backgroundColor: color }}></span>
@@ -54,87 +234,90 @@ const KanbanColumn = ({ title, count, color, children }) => (
   </div>
 );
 
-const MyTasks = () => {
+const MyTasks = ({ initialTasks = [], onRefresh }) => {
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [projectFilter, setProjectFilter] = useState('All');
+
+  const projects = ['All', ...new Set(initialTasks.map(t => t.project))];
+
+  const filteredTasks = projectFilter === 'All' 
+    ? initialTasks 
+    : initialTasks.filter(t => t.project === projectFilter);
+
+  const getTasksByStatus = (status) => filteredTasks.filter(task => task.status === status);
+
+  const todoTasks = getTasksByStatus('To Do');
+  const inProgressTasks = getTasksByStatus('In Progress');
+  const doneTasks = getTasksByStatus('Done');
+
+  const handleDrop = async (taskId, newStatus) => {
+    try {
+      const taskToUpdate = initialTasks.find(t => t.id === parseInt(taskId));
+      if (taskToUpdate && taskToUpdate.status !== newStatus) {
+        await updateTask(taskId, { ...taskToUpdate, status: newStatus });
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to update task status upon drop:', error);
+    }
+  };
+
   return (
     <div className="mytasks-container">
       <header className="mytasks-header">
-        <h2 className="mytasks-title">My Tasks</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <h2 className="mytasks-title">My Tasks</h2>
+          <select 
+            className="mytasks-project-select" 
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: 'white',
+              fontSize: '13px',
+              color: '#64748b',
+              outline: 'none'
+            }}
+          >
+            {projects.map(p => <option key={p} value={p}>{p === 'All' ? 'All Projects' : p}</option>)}
+          </select>
+        </div>
         <div className="mytasks-view-actions">
           <button className="mytasks-view-btn mytasks-view-btn-active">Board View</button>
-          <button className="mytasks-view-btn">List View</button>
+          <button className="mytasks-view-btn" onClick={onRefresh}>Refresh</button>
         </div>
       </header>
 
       <div className="kanban-board">
-        <KanbanColumn title="Backlog" count="4" color="#94a3b8">
-          <KanbanCard 
-            id="#PO-104"
-            tag="INTERNAL"
-            tagBg="var(--dashboard-surface-container-high)"
-            tagColor="var(--dashboard-on-surface-variant)"
-            title="Database migration for legacy nodes"
-            accent="linear-gradient(to right, #e2e8f0, #94a3b8)"
-            team={["https://lh3.googleusercontent.com/aida-public/AB6AXuANstcuDmAeTXfSi08IZnYYuc0Oy5djxoh8bDNdg6XveU2Himh5pWSB8lskGtpLWrW9zCBP6Gc9enzPtcIpz5nuH-eDS0wFkkNvI2lXbOd43MCVJpkxqqvCl6rDb4Uup4lNqn55U9ELnLJRO7Kt5M_AkLkM7V58U4U7RaFAKKLo_Dd7tloEYSa594fshyplh4eXZX0pd2QiGGq-p6Qjzd4-wekC3rVdLoI4inGDZVBeT6dx6nDht197SynVQnpSfCGxIu7Tp7fZrrsX", "https://lh3.googleusercontent.com/aida-public/AB6AXuDujF4c-MzLKLpgIQu7In_IlQTjL9NI9acl1XwV7-ku0jhdtT5-41Dk3_T4q3A6fGKnMmpD0gC5C_A6bbhyOdJsKBnWmVU8YGriYOiSfwWexow12v752SxmFKB5Gf-4-nQKjR1gd-v7ZIijkaO2rl5cTXqnyGjKBl-C0y2SnKem4DV8uOb-xyJ1W4mQ3CPU2eOXuoey-yNK440Xp1w3hrTgf0yqEwAlZGN8j5fb89rug9fcs-l48gD-VfwHcUBslL3mj5mcnjAprnRL"]}
-            metaIcon="chat_bubble"
-            metaValue="12"
-          />
-          <KanbanCard 
-            id="#PO-112"
-            tag="LOW"
-            tagBg="var(--dashboard-secondary-container)"
-            tagColor="var(--dashboard-on-secondary-container)"
-            title="Update documentation for API endpoints v2.4"
-            accent="linear-gradient(to right, #d1d5db, #6b7280)"
-            team={["https://lh3.googleusercontent.com/aida-public/AB6AXuCs9XohE0yUh9NrKjSL2cVTBcHFG_926FxHMgReI3G0QGEH-4tliknvvCQxL5tBKHOtwhx_pcXhJsDv63sqWUM9VYE-NhPjeMjaWNd1mJfcZi7gWjzJq6WOzzZr6kMJsbAobTwA31pLDWoXZW1YR6xTL0lONdqHeCjtMCpC_nppKtfp0vT0Rlhxwrg3wJdWbGAQ5N-p3PPR7bklPXqNNYYUJQ7e0Kv2qfPXO4hsmIepIhCDmSoUy7pYzaduy96D6tZyPRsI2K1-5y5g"]}
-            metaIcon="attach_file"
-            metaValue="3"
-          />
+        <KanbanColumn title="To Do" count={todoTasks.length} color="#94a3b8" onDrop={handleDrop}>
+          {todoTasks.map(task => (
+            <KanbanCard key={task.id} task={task} onClick={setSelectedTask} />
+          ))}
         </KanbanColumn>
 
-        <KanbanColumn title="In Progress" count="2" color="#3b82f6">
-          <KanbanCard 
-            id="#PO-88"
-            tag="URGENT"
-            tagBg="var(--dashboard-error-container)"
-            tagColor="var(--dashboard-error)"
-            title="Neural network fine-tuning for edge devices"
-            accent="linear-gradient(to right, #60a5fa, #2563eb)"
-            team={["https://lh3.googleusercontent.com/aida-public/AB6AXuCCUoRpWU6aTY6oL3PCnb0qnoYXtly516uEddysSTcPeGXGLBTmfs4_6J0fM_5gvgUShpUvWxUz_9B-eYbTEF2d_4Y97ng_Bfk6j8rgIHI_3eEu1CSoSd7HXZ-SPTnlO7IqLlNImw47XuvhJo0tfmBEOtCSwv14xNfOwoHNS5i6bkJfuncZpvwvNJkLhdsjKIvm65dmST-kUnYhEX5LOjanF5L3N51VWc6zLTMnapLFJUkitYepwQVvq6SBnJqIJXag1atRjPUg_RuQ", "https://lh3.googleusercontent.com/aida-public/AB6AXuCthmERnMUd53NEzxEX95wUPF_puKpuA_Uzyvg-azhA227SPGkuWO0yMfkKp3E3wNojP7pnJtQvtfsVpM036L5UYR9FvLGOeLAJQXTmlBXfg9xlDCNYEvYQTPzfdV8HtKlUI6qFb5qM_Y9zfxk5_rNyD_vLlYCk81b3xxytmgl6E41AHM-aVP1qu4BOxK9h3Fg45csr3x3EsOdlFqr8Zgw2UQrEKXXe5jLjT37uIL3P8gLrk_CQ6FWkMle0s8cJV64YnREjI6Z443HD"]}
-            metaIcon="schedule"
-            metaValue="2d left"
-            progress={65}
-          />
+        <KanbanColumn title="In Progress" count={inProgressTasks.length} color="#3b82f6" onDrop={handleDrop}>
+          {inProgressTasks.map(task => (
+            <KanbanCard key={task.id} task={task} onClick={setSelectedTask} />
+          ))}
         </KanbanColumn>
 
-        <KanbanColumn title="In Review" count="3" color="#fbbf24">
-          <KanbanCard 
-            id="#PO-92"
-            tag="MEDIUM"
-            tagBg="var(--dashboard-surface-container-high)"
-            tagColor="var(--dashboard-on-surface-variant)"
-            title="Security audit for auth middleware"
-            accent="linear-gradient(to right, #fde68a, #fbbf24)"
-            team={["https://lh3.googleusercontent.com/aida-public/AB6AXuC0YMrmwUgFsWCFhzaPRvoOUungebL6txluXQRpM8jM8ji8UDgt3r4TPu9cnRnIv8wL4P05Wf8uswpyYFG0velWkO1VUd1SQFpNB1lSyF9MSxeLMeu71_BTWnVHS9iKVfJHzyisWNJtOrCDWhCegqHnD4H2dRgralkcgt5uOOGwFhJlhpWCvD7RVCHCJ68RIleiUJyV8j1tP5Vq_fhXcGt-UQyqvf3XfYi6LZPWNjfi-EFEC1IsBlwNXGeIBnmlxW2ZDyD8-t8cKm_u"]}
-            metaIcon="warning"
-            metaValue="Reviewing"
-          />
-        </KanbanColumn>
-
-        <KanbanColumn title="Done" count="18" color="#14b8a6">
-          <KanbanCard 
-            id="#PO-72"
-            tag="DONE"
-            tagBg="var(--dashboard-tertiary-fixed)"
-            tagColor="var(--dashboard-on-tertiary-container)"
-            title="Redesign orchestration engine dashboard"
-            accent="#14b8a6"
-            team={["https://lh3.googleusercontent.com/aida-public/AB6AXuC54Y7sgJKow3si6oAO14XlV3-TsHN1b0fijpnzBz1h3tjJqng1jMmer8ofndSjXcrGPhBOULyxbzfTD5EGvslTX9FBVw1dcCKrh_XPbC-PL55veau2LpAh0-VA__71gjYuLvPa2_ZBNoSKXYa8HugsKDTgUXpZ8w5YVOgmq50O-wxihbQon6Y1UKrXubV5jotwFbiNDSnjnw7brhXb0a37U4mCs4YBNSHB8El9mjjHb5K2cJfO1b6ZiiP6GJVOuqXaqQq4ykGtYDNK"]}
-            metaIcon="check_circle"
-            metaValue="Archived"
-            status="Done"
-          />
+        <KanbanColumn title="Done" count={doneTasks.length} color="#14b8a6" onDrop={handleDrop}>
+          {doneTasks.map(task => (
+            <KanbanCard key={task.id} task={task} onClick={setSelectedTask} />
+          ))}
         </KanbanColumn>
       </div>
+
+      {selectedTask && (
+        <TaskDetailsModal 
+          task={selectedTask} 
+          onClose={() => setSelectedTask(null)} 
+          onUpdate={onRefresh}
+          onDelete={onRefresh}
+        />
+      )}
     </div>
   );
 };

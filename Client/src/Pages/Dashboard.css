@@ -317,19 +317,29 @@
 .dashboard-header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
-.dashboard-action-btn-secondary {
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.875rem;
+.dashboard-filter-group {
   display: flex;
-  align-items: center;
   gap: 8px;
+}
+
+.dashboard-filter-select {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  outline: none;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dashboard-filter-select:hover {
+  border-color: var(--dashboard-on-primary-container);
 }
 
 .dashboard-action-btn-primary {

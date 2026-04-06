@@ -1,36 +1,49 @@
-import React, { useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getTasks, updateTask } from '../api';
 import './Dashboard.css';
 import MyTasks from '../Components/MyTasks';
 import FocusMode from '../Components/FocusMode';
 import TeamFeed from '../Components/TeamFeed';
+import Analytics from '../Components/Analytics';
+import HelpCenter from '../Components/HelpCenter';
+import Settings from '../Components/Settings';
+import CreateTask from '../Components/CreateTask';
 
 // Asset Imports
 import userAvatar from '../assets/user.png';
 
 // Reusable Top Navigation Component
-const DashboardTopNav = () => (
+const DashboardTopNav = ({ user, searchQuery, setSearchQuery }) => (
   <header className="dashboard-top-nav">
     <div className="dashboard-nav-left">
       <div className="dashboard-search-container">
         <span className="material-symbols-outlined dashboard-search-icon">search</span>
-        <input className="dashboard-search-input" placeholder="Search tasks, teams, or projects..." type="text" />
+        <input 
+          className="dashboard-search-input" 
+          placeholder="Search tasks, teams, or projects..." 
+          type="text" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
     </div>
     <div className="dashboard-nav-right">
       <button className="dashboard-nav-icon-btn">
         <span className="material-symbols-outlined">notifications</span>
       </button>
-      <button className="dashboard-nav-icon-btn">
+      <Link to="/settings" className="dashboard-nav-icon-btn">
         <span className="material-symbols-outlined">settings</span>
-      </button>
+      </Link>
       <div className="dashboard-nav-divider"></div>
       <div className="dashboard-user-profile">
         <div className="dashboard-user-info">
-          <p className="dashboard-user-name">Marcus Thorne</p>
-          <p className="dashboard-user-role">Lead Orchestrator</p>
+          <p className="dashboard-user-name">{user?.username || 'Guest'}</p>
+          <p className="dashboard-user-role">{user?.jobTitle || 'Lead Orchestrator'}</p>
         </div>
         <div className="dashboard-user-avatar">
-          <img alt="User profile" src={userAvatar} />
+          <img alt="User profile" src={user?.avatar || userAvatar} />
         </div>
       </div>
     </div>
@@ -53,7 +66,7 @@ const DashboardMenuLink = ({ icon, label, active = false, logout = false, onClic
 );
 
 // Reusable Side Navigation Component
-const DashboardSideNav = ({ activeTab, onTabChange }) => (
+const DashboardSideNav = ({ activeTab, onTabChange, onCreateTaskOpen, onLogout }) => (
   <aside className="dashboard-side-nav">
     <div className="dashboard-brand-section">
       <div className="dashboard-brand-icon-box">
@@ -64,7 +77,7 @@ const DashboardSideNav = ({ activeTab, onTabChange }) => (
         <p className="dashboard-brand-subtitle">Orchestrator v1.0</p>
       </div>
     </div>
-    <button className="dashboard-create-task-btn">
+    <button className="dashboard-create-task-btn" onClick={onCreateTaskOpen}>
       <span className="material-symbols-outlined">add</span>
       <span>New Task</span>
     </button>
@@ -93,11 +106,21 @@ const DashboardSideNav = ({ activeTab, onTabChange }) => (
         active={activeTab === 'teamfeed'} 
         onClick={() => onTabChange('teamfeed')} 
       />
-      <DashboardMenuLink icon="analytics" label="Analytics" />
+      <DashboardMenuLink 
+        icon="analytics" 
+        label="Analytics" 
+        active={activeTab === 'analytics'} 
+        onClick={() => onTabChange('analytics')} 
+      />
     </nav>
     <div className="dashboard-side-footer">
-      <DashboardMenuLink icon="help" label="Help Center" />
-      <DashboardMenuLink icon="logout" label="Logout" logout />
+      <DashboardMenuLink 
+        icon="help" 
+        label="Help Center" 
+        active={activeTab === 'helpcenter'} 
+        onClick={() => onTabChange('helpcenter')} 
+      />
+      <DashboardMenuLink icon="logout" label="Logout" logout onClick={onLogout} />
     </div>
   </aside>
 );
@@ -166,6 +189,91 @@ const DashboardProjectCard = ({ title, desc, progress, accentColor, progressColo
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [tasks, setTasks] = useState([]);
+  const [user, setUser] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const fetchTasks = async () => {
+    try {
+      const { data } = await getTasks();
+      setTasks(data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
+
+  const handleQuickComplete = async (task) => {
+    if (task.status === 'Done') return;
+    try {
+      await updateTask(task.id, { ...task, status: 'Done' });
+      fetchTasks();
+    } catch (error) {
+      console.error('Error completing task:', error);
+    }
+  };
+
+  useEffect(() => {
+    const userInfo = localStorage.getItem('userInfo');
+    if (!userInfo) {
+      navigate('/login');
+    } else {
+      setUser(JSON.parse(userInfo));
+      fetchTasks();
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    navigate('/login');
+  };
+
+  // Filter Logic
+  const filteredTasks = tasks.filter(task => {
+    const matchStatus = statusFilter === 'All' || task.status === statusFilter;
+    const matchPriority = priorityFilter === 'All' || task.priority === priorityFilter;
+    const searchLower = searchQuery.toLowerCase();
+    const matchSearch = task.title.toLowerCase().includes(searchLower) || 
+                        (task.description && task.description.toLowerCase().includes(searchLower)) ||
+                        (task.project && task.project.toLowerCase().includes(searchLower));
+    return matchStatus && matchPriority && matchSearch;
+  });
+
+  // Dynamic Stat Calculations
+  const totalTasks = tasks.length;
+  const activeTasks = tasks.filter(t => t.status !== 'Done').length;
+  const doneTasks = tasks.filter(t => t.status === 'Done').length;
+  const completionRate = totalTasks > 0 ? ((doneTasks / totalTasks) * 100).toFixed(1) : 0;
+  
+  const today = new Date().toDateString();
+  const deadlinesToday = tasks.filter(t => {
+    if (!t.dueDate) return false;
+    return new Date(t.dueDate).toDateString() === today && t.status !== 'Done';
+  }).length;
+
+  // Project-based Stats for Distribution
+  const projectsData = Array.from(new Set(tasks.map(t => t.project))).map(project => {
+    const projectTasks = tasks.filter(t => t.project === project);
+    const completed = projectTasks.filter(t => t.status === 'Done').length;
+    const progress = Math.round((completed / projectTasks.length) * 100);
+    return {
+      title: project,
+      progress,
+      tasksCount: projectTasks.length,
+      accentColor: project === 'Core Engine' ? 'linear-gradient(to right, #497cff, #89f5e7)' : 
+                   project === 'Infrastructure' ? 'linear-gradient(to right, #0c9488, #5eead4)' :
+                   project === 'UI Revamp' ? 'linear-gradient(to right, #ba1a1a, #ffdad6)' :
+                   'linear-gradient(to right, #fbbf24, #fef3c7)',
+      progressColor: project === 'Core Engine' ? '#497cff' : 
+                     project === 'Infrastructure' ? '#0c9488' :
+                     project === 'UI Revamp' ? '#ba1a1a' :
+                     '#fbbf24'
+    };
+  });
 
   const renderContent = () => {
     switch (activeTab) {
@@ -174,62 +282,85 @@ const Dashboard = () => {
           <>
             <header className="dashboard-welcome-header">
               <div className="dashboard-welcome-text">
-                <h1 className="dashboard-welcome-title">Morning, Orchestrator.</h1>
+                <h1 className="dashboard-welcome-title">Morning, {user?.username || 'Orchestrator'}.</h1>
                 <p className="dashboard-welcome-subtitle">
-                  You have <span className="dashboard-text-highlight">12 priority tasks</span> requiring attention today.
+                  You have <span className="dashboard-text-highlight">{activeTasks} active tasks</span> requiring attention.
                 </p>
               </div>
               <div className="dashboard-header-actions">
-                <button className="dashboard-action-btn-secondary">
-                  <span className="material-symbols-outlined">filter_list</span>
-                  <span>Filter</span>
-                </button>
-                <button className="dashboard-action-btn-primary">
+                <div className="dashboard-filter-group">
+                  <select 
+                    className="dashboard-filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="All">All Status</option>
+                    <option value="To Do">To Do</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Done">Done</option>
+                  </select>
+                  <select 
+                    className="dashboard-filter-select"
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                  >
+                    <option value="All">All Priority</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+                <button className="dashboard-action-btn-primary" onClick={() => setIsCreateTaskOpen(true)}>
                   <span className="material-symbols-outlined">add</span>
                 </button>
               </div>
             </header>
 
             <section className="dashboard-stats-section">
-              <DashboardStatCard icon="task_alt" label="Active Tasks" value="124" trend="+12%" progress="75%" />
-              <DashboardStatCard icon="trending_up" label="Completion Rate" value="94.2%" trend="+8%" />
-              <DashboardStatCard icon="event_busy" label="Deadlines Today" value="3" />
-              <DashboardStatCard label="Productivity Score" value="A+" highlight />
+              <DashboardStatCard 
+                icon="task_alt" 
+                label="Active Tasks" 
+                value={activeTasks} 
+                trend={totalTasks > 0 ? `Total: ${totalTasks}` : "No tasks"} 
+                progress={`${Math.min((activeTasks / 20) * 100, 100)}%`} 
+              />
+              <DashboardStatCard 
+                icon="trending_up" 
+                label="Completion Rate" 
+                value={`${completionRate}%`} 
+                trend={completionRate > 50 ? "+8%" : "-2%"} 
+              />
+              <DashboardStatCard 
+                icon="event_busy" 
+                label="Deadlines Today" 
+                value={deadlinesToday} 
+              />
+              <DashboardStatCard 
+                label="Productivity Score" 
+                value={completionRate > 80 ? "A+" : completionRate > 50 ? "B" : "C"} 
+                highlight 
+              />
             </section>
 
             <div className="dashboard-content-grid">
               <div className="dashboard-main-col">
                 <section className="dashboard-projects-section">
                   <div className="dashboard-section-header">
-                    <h2 className="dashboard-section-title">Active Projects</h2>
-                    <button className="dashboard-view-all-btn">
-                      View all <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
+                    <h2 className="dashboard-section-title">Project Streams</h2>
                   </div>
                   <div className="dashboard-projects-grid">
-                    <DashboardProjectCard 
-                      title="Global Scale Expansion"
-                      desc="Infrastructure upgrade for EMEA and APAC regions focusing on latency reduction."
-                      progress={68}
-                      accentColor="linear-gradient(to right, #497cff, #89f5e7)"
-                      progressColor="#497cff"
-                      team={[
-                        "https://lh3.googleusercontent.com/aida-public/AB6AXuCXt4pneFOjcYK7-rgGvWB69pL5Nz4Ibaz0_e9RjQDntQZaXd4e9QKbYCjupGUr-7YpjdKLUXVCblNkuedFb4lwXKs8SEAK09vVcU4E8A9wU_oqG47tqpjvyFVTM48KmNFqtizcN8Se3JPDgKEgORvB8_5W3duXiQqgeI3i8u6EeSXgOsaOhuNlKOcQDCYedlrPHCfx-SLzLRGg6Hy-vvzkVxv7PoYfxDmA9F6XO2iUABwlzLrB90alZI2m11JWMrFZy7rXFi4deBcr",
-                        "https://lh3.googleusercontent.com/aida-public/AB6AXuDXApJieP8wMOZPgVxfLRaHHAX0IAIyhyz8sXRHzPYav5Rp5etKT0AA3z1eiSE2bg5fjKcEAyGJmpL4lNmgG6v3ZmkQZX9bUlFSWUxB42EWRm81ItjKapcwLjzh1qQ5tjz7rrO_pyR-aZz2Mfvl5lE2-Qev2yMzONgYXRTqecvxDX6KeUdg2_Ud6ZxPSpP5VbXkWyg33MKsADkQde9zkinZfE40kZfNNJDr4uxFSpZouu8hjhmSL_BLzx7HidLGQpVkqBhFGlia1Pwa",
-                        4
-                      ]}
-                    />
-                    <DashboardProjectCard 
-                      title="Precision UI Revamp"
-                      desc="Complete overhaul of the core design system to align with editorial precision standards."
-                      progress={32}
-                      accentColor="linear-gradient(to right, #89f5e7, #0c9488)"
-                      progressColor="#0c9488"
-                      team={[
-                        "https://lh3.googleusercontent.com/aida-public/AB6AXuCje6mp5oblupn_YX6yMJ7LenjIyCHZy2KO9tleJHyHYLoBXLmdlIsaUhG-qdt-UFAHJZowxnxv785Ai06hmP2XamTrHmGrENNBkq_mO7B_Qm_81ilzH5FEEqcGBptdAIQq9xYm3FQeMHB1bjAMjPPuGzRG_qtjbnhCEaLmVRQrSzb9wES6ZbLKMrLOb6osTxB5HTShVyfs8eKHkhvpQQ6YlffIm9dPiqnCAzee3WzL3cr1upXrhTt_EUhkdcSV0OG__p9ToFEh5JYq",
-                        "https://lh3.googleusercontent.com/aida-public/AB6AXuAOeCkIazlK9uZjYAQ-8nvBq8SQGdQDCXSDAZISAc2p60BY6mrQaV6VjDNJNWQjDybwsmE2M0315-RMQak__jF7JmibO_WSwSR_v27_2hL3FGr748JqQq37oebtZx2yxw8qgMe72kzaQRNk_0S_w1-dqRVK4MHTB6v2aEbYz5XRjhk8UX5gEAmO_7A1kOgu9g-I95P8RIwGO2_UBd1Z7DOgK76di7mfkuI6HM_Q4VtvDuS5GVRaUJiC6SJ6R4QNZSxqxKsN4lkyJw4e"
-                      ]}
-                    />
+                    {projectsData.map((project, idx) => (
+                      <DashboardProjectCard 
+                        key={idx}
+                        title={project.title}
+                        desc={`${project.tasksCount} total objectives tracked in this stream.`}
+                        progress={project.progress}
+                        accentColor={project.accentColor}
+                        progressColor={project.progressColor}
+                        team={[]}
+                      />
+                    ))}
+                    {projectsData.length === 0 && <p>No project data available.</p>}
                   </div>
                 </section>
               </div>
@@ -237,51 +368,61 @@ const Dashboard = () => {
               <aside className="dashboard-activity-column">
                 <div className="dashboard-activity-card">
                   <div className="dashboard-section-header">
-                    <h2 className="dashboard-section-title">Recent Activity</h2>
-                    <button className="dashboard-refresh-btn">Refresh</button>
+                    <h2 className="dashboard-section-title">Timeline</h2>
+                    <button className="dashboard-refresh-btn" onClick={fetchTasks}>Refresh</button>
                   </div>
                   <div className="dashboard-activity-timeline">
-                    <div className="dashboard-timeline-item">
-                      <div className="dashboard-timeline-icon" style={{ backgroundColor: 'var(--dashboard-on-primary-container)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'white' }}>chat_bubble</span>
+                    {filteredTasks.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 5).map(task => (
+                      <div className="dashboard-timeline-item" key={task.id} style={{ opacity: task.status === 'Done' ? 0.7 : 1 }}>
+                        <div className="dashboard-timeline-icon" style={{ backgroundColor: task.status === 'Done' ? '#14b8a6' : 'var(--dashboard-on-primary-container)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'white' }}>{task.status === 'Done' ? 'verified' : 'task'}</span>
+                        </div>
+                        <div className="dashboard-timeline-content" style={{ flex: 1 }}>
+                          <p style={{ textDecoration: task.status === 'Done' ? 'line-through' : 'none' }}><strong>{task.title}</strong></p>
+                          <p className="dashboard-timeline-subtext">{task.status} • {task.priority}</p>
+                        </div>
+                        {task.status !== 'Done' && (
+                          <button 
+                            className="dashboard-quick-complete-btn" 
+                            onClick={() => handleQuickComplete(task)}
+                            title="Mark as Done"
+                            style={{ 
+                              background: '#f2f4f6', 
+                              border: 'none', 
+                              borderRadius: '50%',
+                              width: '32px',
+                              height: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer', 
+                              color: '#14b8a6', 
+                              marginLeft: '12px' 
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>done</span>
+                          </button>
+                        )}
                       </div>
-                      <div className="dashboard-timeline-content">
-                        <p><strong>Sarah Chen</strong> commented on <span className="dashboard-activity-link">API Auth Logic</span></p>
-                        <p className="dashboard-timeline-subtext">"Can we double check the token expiration logic?"</p>
-                        <span className="dashboard-timeline-time">12 minutes ago</span>
-                      </div>
-                    </div>
-                    <div className="dashboard-timeline-item">
-                      <div className="dashboard-timeline-icon" style={{ backgroundColor: 'var(--dashboard-tertiary-fixed-dim)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--dashboard-on-tertiary-container)' }}>check_circle</span>
-                      </div>
-                      <div className="dashboard-timeline-content">
-                        <p><strong>Marcus T.</strong> completed <span className="dashboard-activity-link">User Onboarding Flows</span></p>
-                        <span className="dashboard-timeline-time">2 hours ago</span>
-                      </div>
-                    </div>
-                    <div className="dashboard-timeline-item">
-                      <div className="dashboard-timeline-icon" style={{ backgroundColor: 'var(--dashboard-error-container)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--dashboard-error)' }}>warning</span>
-                      </div>
-                      <div className="dashboard-timeline-content">
-                        <p><strong className="dashboard-text-error">Urgent Alert</strong>: <span className="dashboard-activity-link">Database Latency</span> spike detected</p>
-                        <span className="dashboard-timeline-time">6 hours ago</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                  <button className="dashboard-load-more-btn">Load Older Activity</button>
                 </div>
               </aside>
             </div>
           </>
         );
       case 'mytasks':
-        return <MyTasks />;
+        return <MyTasks initialTasks={filteredTasks} onRefresh={fetchTasks} />;
       case 'focusmode':
         return <FocusMode />;
       case 'teamfeed':
         return <TeamFeed />;
+      case 'analytics':
+        return <Analytics />;
+      case 'helpcenter':
+        return <HelpCenter />;
+      case 'settings':
+        return <Settings onProfileUpdate={(updatedUser) => setUser(updatedUser)} />;
       default:
         return <div>Select a menu item</div>;
     }
@@ -289,13 +430,23 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-wrapper">
-      <DashboardSideNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <DashboardSideNav 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        onCreateTaskOpen={() => setIsCreateTaskOpen(true)} 
+        onLogout={handleLogout}
+      />
       <div className="dashboard-main-container">
-        <DashboardTopNav />
+        <DashboardTopNav user={user} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <main className="dashboard-scroll-content">
           {renderContent()}
         </main>
       </div>
+      <CreateTask 
+        isOpen={isCreateTaskOpen} 
+        onClose={() => setIsCreateTaskOpen(false)} 
+        onTaskCreated={fetchTasks}
+      />
     </div>
   );
 };

@@ -1,21 +1,25 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { login } from "../api";
 import "./Login.css";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const storedData = JSON.parse(localStorage.getItem("signupData"));
-
-    if (storedData && storedData.email === email && storedData.password === password) {
-      alert("Login successful!");
-      window.location.href = "/dashboard";
-    } else {
-      alert("Invalid email or password!");
+    try {
+      const { data } = await login({ email, password });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userInfo", JSON.stringify(data));
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     }
   };
 
@@ -44,6 +48,7 @@ const Login = () => {
           </div>
           <div id="loginrightsec2">
             <form onSubmit={handleSubmit}>
+              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '16px', fontWeight: '600' }}>{error}</p>}
               <div className="forminput">
                 <label htmlFor="email">Email Address</label>
                 <input

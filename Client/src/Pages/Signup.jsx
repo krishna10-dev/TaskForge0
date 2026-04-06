@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { signup } from "../api";
 import "./Signup.css";
 
 const Signup = () => {
@@ -8,34 +9,31 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (!accepted) {
-      alert("You must accept the Terms of Service and Privacy Policy.");
+      setError("You must accept the Terms of Service and Privacy Policy.");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
-    const formData = {
-      fullname,
-      email,
-      password,
-    };
-
-    localStorage.setItem("signupData", JSON.stringify(formData));
-    alert("Account created successfully!");
-
-    setFullname("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setAccepted(false);
+    try {
+      const { data } = await signup({ username: fullname, email, password });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userInfo", JSON.stringify(data));
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -64,6 +62,7 @@ const Signup = () => {
           </div>
           <div id="signuprightsec2">
             <form onSubmit={handleSubmit}>
+              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '16px', fontWeight: '600' }}>{error}</p>}
               <div className="forminput">
                 <label htmlFor="fullname">Full Name</label>
                 <input
