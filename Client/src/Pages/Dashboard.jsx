@@ -15,7 +15,9 @@ import CreateTask from '../Components/CreateTask';
 // Asset Imports
 import userAvatar from '../assets/user.png';
 
-const socket = io('http://localhost:5000');
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const SOCKET_URL = API_URL.replace('/api', '');
+const socket = io(SOCKET_URL);
 
 // Reusable Top Navigation Component
 const DashboardTopNav = ({ user, searchQuery, setSearchQuery }) => (
