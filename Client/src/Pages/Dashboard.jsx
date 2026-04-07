@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { getTasks, updateTask } from '../api';
 import './Dashboard.css';
 import MyTasks from '../Components/MyTasks';
@@ -13,6 +14,8 @@ import CreateTask from '../Components/CreateTask';
 
 // Asset Imports
 import userAvatar from '../assets/user.png';
+
+const socket = io('http://localhost:5000');
 
 // Reusable Top Navigation Component
 const DashboardTopNav = ({ user, searchQuery, setSearchQuery }) => (
@@ -196,11 +199,13 @@ const Dashboard = () => {
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const tasksRef = useRef([]);
 
   const fetchTasks = async () => {
     try {
       const { data } = await getTasks();
       setTasks(data);
+      tasksRef.current = data;
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
@@ -209,7 +214,7 @@ const Dashboard = () => {
   const handleQuickComplete = async (task) => {
     if (task.status === 'Done') return;
     try {
-      await updateTask(task.id, { ...task, status: 'Done' });
+      await updateTask(task.id, { ...task, status: 'Done', progress: 100 });
       fetchTasks();
     } catch (error) {
       console.error('Error completing task:', error);
@@ -224,6 +229,34 @@ const Dashboard = () => {
       setUser(JSON.parse(userInfo));
       fetchTasks();
     }
+
+    // Socket listeners for live updates
+    const onTaskUpdated = (updatedTask) => {
+      setTasks(prevTasks => {
+        const index = prevTasks.findIndex(t => t.id === updatedTask.id);
+        if (index !== -1) {
+          const newTasks = [...prevTasks];
+          newTasks[index] = updatedTask;
+          return newTasks;
+        }
+        return prevTasks;
+      });
+    };
+
+    const onTaskCreated = (newTask) => {
+      setTasks(prevTasks => {
+        if (prevTasks.some(t => t.id === newTask.id)) return prevTasks;
+        return [newTask, ...prevTasks];
+      });
+    };
+
+    socket.on('task_updated', onTaskUpdated);
+    socket.on('task_created', onTaskCreated);
+
+    return () => {
+      socket.off('task_updated', onTaskUpdated);
+      socket.off('task_created', onTaskCreated);
+    };
   }, [navigate]);
 
   const handleLogout = () => {
@@ -259,7 +292,10 @@ const Dashboard = () => {
   const projectsData = Array.from(new Set(tasks.map(t => t.project))).map(project => {
     const projectTasks = tasks.filter(t => t.project === project);
     const completed = projectTasks.filter(t => t.status === 'Done').length;
-    const progress = Math.round((completed / projectTasks.length) * 100);
+    // Calculate overall project progress based on individual task progress
+    const totalProgress = projectTasks.reduce((acc, t) => acc + (t.progress || 0), 0);
+    const progress = projectTasks.length > 0 ? Math.round(totalProgress / projectTasks.length) : 0;
+    
     return {
       title: project,
       progress,
@@ -346,7 +382,7 @@ const Dashboard = () => {
               <div className="dashboard-main-col">
                 <section className="dashboard-projects-section">
                   <div className="dashboard-section-header">
-                    <h2 className="dashboard-section-title">Project Streams</h2>
+                    <h2 className="dashboard-section-title">Project Streams (Live Tracking)</h2>
                   </div>
                   <div className="dashboard-projects-grid">
                     {projectsData.map((project, idx) => (
@@ -379,7 +415,12 @@ const Dashboard = () => {
                         </div>
                         <div className="dashboard-timeline-content" style={{ flex: 1 }}>
                           <p style={{ textDecoration: task.status === 'Done' ? 'line-through' : 'none' }}><strong>{task.title}</strong></p>
-                          <p className="dashboard-timeline-subtext">{task.status} • {task.priority}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                             <p className="dashboard-timeline-subtext">{task.status} • {task.priority}</p>
+                             <div style={{ width: '40px', height: '4px', background: '#f1f5f9', borderRadius: '2px' }}>
+                               <div style={{ width: `${task.progress || 0}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }}></div>
+                             </div>
+                          </div>
                         </div>
                         {task.status !== 'Done' && (
                           <button 
@@ -412,7 +453,7 @@ const Dashboard = () => {
           </>
         );
       case 'mytasks':
-        return <MyTasks initialTasks={filteredTasks} onRefresh={fetchTasks} />;
+        return <MyTasks initialTasks={tasks} onRefresh={fetchTasks} />;
       case 'focusmode':
         return <FocusMode />;
       case 'teamfeed':

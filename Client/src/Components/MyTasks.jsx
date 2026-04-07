@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { updateTask, deleteTask } from '../api';
+import React, { useState, useEffect } from 'react';
+import { updateTask, deleteTask, uploadFile, uploadTaskProof } from '../api';
 import './MyTasks.css';
 
 // Reusable Kanban Card Component
 const KanbanCard = ({ task, onClick, onDragStart }) => {
-  const { id, title, priority, status, dueDate, project } = task;
+  const { id, title, priority, status, dueDate, project, progress, Attachments = [] } = task;
   
   const tagBg = priority === 'High' ? 'var(--dashboard-error-container)' : 
                 priority === 'Medium' ? 'var(--dashboard-secondary-container)' : 
@@ -40,13 +40,37 @@ const KanbanCard = ({ task, onClick, onDragStart }) => {
       </div>
       <h4 className="kanban-card-title">{title}</h4>
       
+      {/* Progress Bar in Kanban Card */}
+      <div className="kanban-progress-container" style={{ margin: '12px 0 8px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>
+          <span>Progress</span>
+          <span>{progress || 0}%</span>
+        </div>
+        <div style={{ height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ 
+            height: '100%', 
+            width: `${progress || 0}%`, 
+            background: status === 'Done' ? '#14b8a6' : (progress > 70 ? '#3b82f6' : '#94a3b8'),
+            transition: 'width 0.3s ease'
+          }}></div>
+        </div>
+      </div>
+
       <div className="kanban-card-footer">
-        <div className="kanban-team-stack">
-          {status === 'Done' ? (
-            <span className="material-symbols-outlined" style={{fontSize: '20px', color: '#14b8a6'}}>task_alt</span>
-          ) : (
-            <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#94a3b8'}}>person</span>
+        <div className="kanban-meta-left" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {Attachments && Attachments.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#64748b', fontSize: '11px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>attach_file</span>
+              <span>{Attachments.length}</span>
+            </div>
           )}
+          <div className="kanban-team-stack">
+            {status === 'Done' ? (
+              <span className="material-symbols-outlined" style={{fontSize: '20px', color: '#14b8a6'}}>task_alt</span>
+            ) : (
+              <span className="material-symbols-outlined" style={{fontSize: '18px', color: '#94a3b8'}}>person</span>
+            )}
+          </div>
         </div>
         <div className="kanban-meta">
           {status !== 'Done' && daysLeft !== null && (
@@ -71,14 +95,24 @@ const KanbanCard = ({ task, onClick, onDragStart }) => {
 const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState({ ...task });
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    setEditedTask({ ...task });
+  }, [task]);
 
   if (!task) return null;
 
   const handleSave = async () => {
     try {
-      await updateTask(task.id, editedTask);
+      // Auto-set status to Done if progress is 100%
+      const finalTask = { ...editedTask };
+      if (finalTask.progress === 100) {
+        finalTask.status = 'Done';
+      }
+      await updateTask(task.id, finalTask);
       onUpdate();
-      onClose();
+      setIsEditing(false);
     } catch {
       alert('Failed to update task');
     }
@@ -93,6 +127,34 @@ const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
       } catch {
         alert('Failed to delete task');
       }
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const { data: fileUrl } = await uploadFile(formData);
+      
+      await uploadTaskProof(task.id, {
+        fileName: file.name,
+        fileUrl: fileUrl,
+        fileSize: file.size,
+        fileType: file.type
+      });
+      
+      onUpdate();
+      alert('Proof of work uploaded successfully!');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Failed to upload proof of work');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -137,6 +199,59 @@ const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
                 ) : (
                   <p>{task.description || 'No description provided.'}</p>
                 )}
+              </div>
+
+              {/* Progress Tracker Section */}
+              <div className="detail-group">
+                <label>Task Progress ({editedTask.progress || 0}%)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    step="5"
+                    value={editedTask.progress || 0}
+                    onChange={(e) => setEditedTask({...editedTask, progress: parseInt(e.target.value)})}
+                    disabled={!isEditing}
+                    style={{ flex: 1, accentColor: 'var(--dashboard-primary)' }}
+                  />
+                  <span style={{ fontWeight: '600', color: 'var(--dashboard-primary)', width: '40px' }}>{editedTask.progress || 0}%</span>
+                </div>
+              </div>
+
+              {/* Proof of Work Section */}
+              <div className="detail-group proof-section">
+                <label>Proof of Work (Files, Images, Videos)</label>
+                <div className="attachments-list">
+                  {task.Attachments && task.Attachments.length > 0 ? (
+                    <div className="attachments-grid">
+                      {task.Attachments.map((att) => (
+                        <a key={att.id} href={`http://localhost:5000${att.fileUrl}`} target="_blank" rel="noopener noreferrer" className="attachment-item">
+                          <span className="material-symbols-outlined">
+                            {att.fileType.includes('image') ? 'image' : 
+                             att.fileType.includes('video') ? 'movie' : 'description'}
+                          </span>
+                          <span className="attachment-name">{att.fileName}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="no-attachments">No proof uploaded yet.</p>
+                  )}
+                </div>
+                <div className="upload-proof-box">
+                  <input 
+                    type="file" 
+                    id="proof-upload" 
+                    hidden 
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                  <label htmlFor="proof-upload" className="upload-label">
+                    <span className="material-symbols-outlined">{uploading ? 'sync' : 'cloud_upload'}</span>
+                    <span>{uploading ? 'Uploading...' : 'Upload Proof of Work'}</span>
+                  </label>
+                </div>
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { protect } = require('../middleware/auth');
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -16,14 +17,14 @@ const storage = multer.diskStorage({
 });
 
 function checkFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png|pdf|doc|docx/;
+  const filetypes = /jpg|jpeg|png|pdf|doc|docx|mp4|mov|avi|zip|txt/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
 
-  if (extname && mimetype) {
+  if (extname || mimetype) {
     return cb(null, true);
   } else {
-    cb('Error: Supported files only!');
+    cb('Error: File type not supported!');
   }
 }
 
@@ -34,7 +35,7 @@ const upload = multer({
   },
 });
 
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', protect, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).send({ message: 'No file uploaded' });
   }

@@ -1,8 +1,11 @@
-const { Task, Activity, User } = require('../models');
+const { Task, Activity, User, Attachment } = require('../models');
 
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.findAll({ where: { UserId: req.user.id } });
+    const tasks = await Task.findAll({ 
+      where: { UserId: req.user.id },
+      include: [{ model: Attachment }]
+    });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -10,7 +13,7 @@ exports.getTasks = async (req, res) => {
 };
 
 exports.createTask = async (req, res) => {
-  const { title, description, status, priority, dueDate, project, assignee, tags } = req.body;
+  const { title, description, status, priority, dueDate, project, assignee, tags, progress } = req.body;
 
   try {
     const task = await Task.create({
@@ -22,6 +25,7 @@ exports.createTask = async (req, res) => {
       project,
       assignee,
       tags,
+      progress: progress || 0,
       UserId: req.user.id,
     });
 
@@ -44,6 +48,7 @@ exports.createTask = async (req, res) => {
     const io = req.app.get('socketio');
     if (io) {
       io.emit('new_activity', activityWithUser);
+      io.emit('task_created', task);
     }
 
     res.status(201).json(task);
@@ -56,7 +61,10 @@ exports.updateTask = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const task = await Task.findOne({ where: { id, UserId: req.user.id } });
+    const task = await Task.findOne({ 
+      where: { id, UserId: req.user.id },
+      include: [{ model: Attachment }]
+    });
 
     if (task) {
       const oldStatus = task.status;
@@ -86,10 +94,52 @@ exports.updateTask = async (req, res) => {
         }
       }
 
+      // Emit via socket.io for real-time tracking
+      const io = req.app.get('socketio');
+      if (io) {
+        io.emit('task_updated', task);
+      }
+
       res.json(task);
     } else {
       res.status(404).json({ message: 'Task not found' });
     }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.uploadTaskProof = async (req, res) => {
+  const { id } = req.params;
+  const { fileName, fileUrl, fileSize, fileType } = req.body;
+
+  try {
+    const task = await Task.findOne({ where: { id, UserId: req.user.id } });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const attachment = await Attachment.create({
+      fileName,
+      fileUrl,
+      fileSize,
+      fileType,
+      TaskId: task.id
+    });
+
+    // If a proof is uploaded, we might want to automatically update progress or status
+    // For now, let's just emit an update
+    const io = req.app.get('socketio');
+    if (io) {
+      const updatedTask = await Task.findOne({
+        where: { id: task.id },
+        include: [{ model: Attachment }]
+      });
+      io.emit('task_updated', updatedTask);
+    }
+
+    res.status(201).json(attachment);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

@@ -35,6 +35,14 @@ const Task = sequelize.define('Task', {
   tags: {
     type: DataTypes.STRING,
   },
+  progress: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 100
+    }
+  },
 });
 
 module.exports = Task;

@@ -42,7 +42,7 @@ app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true }) // Force schema update for new models
+sequelize.sync() // Using standard sync for SQLite stability
   .then(() => {
     console.log('Database connected & synced');
     server.listen(PORT, () => {

@@ -652,6 +652,21 @@
   margin-top: 4px;
 }
 
+.dashboard-timeline-progress-bg {
+  width: 40px;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dashboard-timeline-progress-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
 .dashboard-timeline-time {
   font-size: 10px;
   color: #94a3b8;

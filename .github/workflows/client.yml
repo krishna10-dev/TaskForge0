@@ -1,0 +1,39 @@
+name: Client CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Client/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Client/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: Client/package-lock.json
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: Client
+
+    - name: Build
+      run: npm run build
+      working-directory: Client
+
+    # Optional: Yahan aap deployment step add kar sakte hain (e.g., Firebase, Vercel, Netlify)

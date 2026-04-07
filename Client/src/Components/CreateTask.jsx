@@ -100,6 +100,9 @@ const CreateTask = ({ isOpen, onClose, onTaskCreated }) => {
                       <option>Backend Orchestration</option>
                       <option>Market Integration</option>
                       <option>Precision Engine</option>
+                      <option>Frontend Development</option>
+                      <option>Backend Development</option>
+                      <option>Database Management</option>
                     </select>
                   </div>
                   <div className="form-group">

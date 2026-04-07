@@ -66,7 +66,7 @@ const Analytics = () => {
 
   // Velocity Mock Data (augmented with current state)
   const chartData = [
-    { name: 'Mon', completed: 2, target: 4 },
+    { name: 'Mon', completed: 2, target: 6 },
     { name: 'Tue', completed: 5, target: 4 },
     { name: 'Wed', completed: 3, target: 4 },
     { name: 'Thu', completed: 6, target: 5 },
