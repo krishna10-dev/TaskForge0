@@ -1,14 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { getUserProfile, updateUserProfile, uploadFile } from '../api';
-import './Settings.css';
+import React, { useState, useEffect, useRef } from "react";
+import { getUserProfile, updateUserProfile, uploadFile } from "../api";
+import "./Settings.css";
 
 // Reusable Top Navigation Component
-const SettingsTopNav = ({ user }) => (
+const SettingsTopNav = ({ user, searchQuery, setSearchQuery }) => (
   <header className="dashboard-top-nav">
     <div className="dashboard-nav-left">
       <div className="dashboard-search-container">
-        <span className="material-symbols-outlined dashboard-search-icon">search</span>
-        <input className="dashboard-search-input" placeholder="Search settings..." type="text" />
+        <span className="material-symbols-outlined dashboard-search-icon">
+          search
+        </span>
+        <input
+          className="dashboard-search-input"
+          placeholder="Search settings..."
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
     </div>
     <div className="dashboard-nav-right">
@@ -21,11 +29,14 @@ const SettingsTopNav = ({ user }) => (
       <div className="dashboard-nav-divider"></div>
       <div className="dashboard-user-profile">
         <div className="dashboard-user-info">
-          <p className="dashboard-user-name">{user?.username || 'User'}</p>
-          <p className="dashboard-user-role">{user?.jobTitle || 'Role'}</p>
+          <p className="dashboard-user-name">{user?.username || "User"}</p>
+          <p className="dashboard-user-role">{user?.jobTitle || "Role"}</p>
         </div>
         <div className="dashboard-user-avatar">
-          <img alt="User profile" src={user?.avatar || 'https://via.placeholder.com/150'} />
+          <img
+            alt="User profile"
+            src={user?.avatar || "https://via.placeholder.com/150"}
+          />
         </div>
       </div>
     </div>
@@ -33,10 +44,16 @@ const SettingsTopNav = ({ user }) => (
 );
 
 // Reusable Sidebar Link Component
-const SettingsMenuLink = ({ icon, label, active = false, logout = false, onClick }) => (
-  <a 
-    href="#" 
-    className={`dashboard-menu-link ${active ? 'dashboard-menu-link-active' : ''} ${logout ? 'dashboard-logout-link' : ''}`}
+const SettingsMenuLink = ({
+  icon,
+  label,
+  active = false,
+  logout = false,
+  onClick,
+}) => (
+  <a
+    href="#"
+    className={`dashboard-menu-link ${active ? "dashboard-menu-link-active" : ""} ${logout ? "dashboard-logout-link" : ""}`}
     onClick={(e) => {
       e.preventDefault();
       onClick && onClick();
@@ -48,9 +65,27 @@ const SettingsMenuLink = ({ icon, label, active = false, logout = false, onClick
 );
 
 const Settings = () => {
-  const [activeSettingTab, setActiveSettingTab] = useState('profile');
+  const [activeSettingTab, setActiveSettingTab] = useState("profile");
+  const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
-  const [formData, setFormData] = useState({ username: '', email: '', jobTitle: '', avatar: '' });
+
+  const navItems = [
+    { id: 'profile', label: 'Profile', icon: 'person' },
+    { id: 'notifications', label: 'Notifications', icon: 'notifications' },
+    { id: 'security', label: 'Security', icon: 'shield' },
+    { id: 'team', label: 'Team', icon: 'group' },
+    { id: 'billing', label: 'Billing', icon: 'payments' },
+  ];
+
+  const filteredNavItems = navItems.filter(item => 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    jobTitle: "",
+    avatar: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -62,11 +97,11 @@ const Settings = () => {
         setFormData({
           username: data.username,
           email: data.email,
-          jobTitle: data.jobTitle || 'Senior Project Orchestrator',
-          avatar: data.avatar || 'https://via.placeholder.com/150'
+          jobTitle: data.jobTitle || "Senior Project Orchestrator",
+          avatar: data.avatar || "https://via.placeholder.com/150",
         });
       } catch (error) {
-        console.error('Failed to load profile', error);
+        console.error("Failed to load profile", error);
       }
     };
     fetchUser();
@@ -81,14 +116,14 @@ const Settings = () => {
     if (!file) return;
 
     const fileData = new FormData();
-    fileData.append('file', file);
+    fileData.append("file", file);
 
     try {
       const { data: fileUrl } = await uploadFile(fileData);
       setFormData({ ...formData, avatar: `http://localhost:5000${fileUrl}` });
     } catch (err) {
       console.error("Error uploading avatar", err);
-      alert('Failed to upload avatar.');
+      alert("Failed to upload avatar.");
     }
   };
 
@@ -97,16 +132,16 @@ const Settings = () => {
     try {
       const { data } = await updateUserProfile(formData);
       setUser(data);
-      
+
       // Update localStorage so dashboard stays in sync
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
       const updatedUserInfo = { ...userInfo, ...data };
-      localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
-      
-      alert('Profile updated successfully!');
+      localStorage.setItem("userInfo", JSON.stringify(updatedUserInfo));
+
+      alert("Profile updated successfully!");
     } catch (error) {
-      console.error('Failed to update profile', error);
-      alert('Failed to update profile.');
+      console.error("Failed to update profile", error);
+      alert("Failed to update profile.");
     } finally {
       setIsSaving(false);
     }
@@ -116,28 +151,42 @@ const Settings = () => {
     if (!user) return <p>Loading profile...</p>;
 
     switch (activeSettingTab) {
-      case 'profile':
+      case "profile":
         return (
           <div className="settings-profile-view">
             <header className="settings-view-header">
               <h1 className="settings-view-title">Profile Settings</h1>
-              <p className="settings-view-subtitle">Update your personal information and application preferences.</p>
+              <p className="settings-view-subtitle">
+                Update your personal information and application preferences.
+              </p>
             </header>
 
             <div className="settings-grid">
               <div className="settings-avatar-col">
                 <div className="avatar-upload-group">
-                  <div className="avatar-preview-box" onClick={() => fileInputRef.current.click()}>
-                    <img 
-                      alt="Profile avatar" 
-                      src={formData.avatar} 
-                    />
+                  <div
+                    className="avatar-preview-box"
+                    onClick={() => fileInputRef.current.click()}
+                  >
+                    <img alt="Profile avatar" src={formData.avatar} />
                     <div className="avatar-overlay">
-                      <span className="material-symbols-outlined">photo_camera</span>
+                      <span className="material-symbols-outlined">
+                        photo_camera
+                      </span>
                     </div>
                   </div>
-                  <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleAvatarUpload} />
-                  <button className="change-photo-btn" onClick={() => fileInputRef.current.click()}>Change Photo</button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    onChange={handleAvatarUpload}
+                  />
+                  <button
+                    className="change-photo-btn"
+                    onClick={() => fileInputRef.current.click()}
+                  >
+                    Change Photo
+                  </button>
                 </div>
               </div>
 
@@ -150,15 +199,30 @@ const Settings = () => {
                   <div className="settings-form-grid">
                     <div className="form-group">
                       <label>Full Name / Username</label>
-                      <input type="text" name="username" value={formData.username} onChange={handleChange} />
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                      />
                     </div>
                     <div className="form-group">
                       <label>Job Title</label>
-                      <input type="text" name="jobTitle" value={formData.jobTitle} onChange={handleChange} />
+                      <input
+                        type="text"
+                        name="jobTitle"
+                        value={formData.jobTitle}
+                        onChange={handleChange}
+                      />
                     </div>
                     <div className="form-group full-width">
                       <label>Email Address</label>
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} />
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
                     </div>
                   </div>
                 </div>
@@ -172,15 +236,21 @@ const Settings = () => {
                     <div className="preference-item">
                       <div className="pref-info">
                         <p className="pref-title">Interface Theme</p>
-                        <p className="pref-desc">Switch between light and dark visual modes</p>
+                        <p className="pref-desc">
+                          Switch between light and dark visual modes
+                        </p>
                       </div>
                       <div className="theme-toggle-group">
                         <button className="theme-btn active">
-                          <span className="material-symbols-outlined">light_mode</span>
+                          <span className="material-symbols-outlined">
+                            light_mode
+                          </span>
                           Light
                         </button>
                         <button className="theme-btn">
-                          <span className="material-symbols-outlined">dark_mode</span>
+                          <span className="material-symbols-outlined">
+                            dark_mode
+                          </span>
                           Dark
                         </button>
                       </div>
@@ -189,7 +259,9 @@ const Settings = () => {
                     <div className="preference-item">
                       <div className="pref-info">
                         <p className="pref-title">Language</p>
-                        <p className="pref-desc">Preferred language for the dashboard</p>
+                        <p className="pref-desc">
+                          Preferred language for the dashboard
+                        </p>
                       </div>
                       <select className="settings-select">
                         <option>English (US)</option>
@@ -202,9 +274,18 @@ const Settings = () => {
                 </div>
 
                 <div className="settings-actions">
-                  <button className="action-btn-cancel" onClick={() => setFormData({ ...user })}>Cancel</button>
-                  <button className="action-btn-save" onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  <button
+                    className="action-btn-cancel"
+                    onClick={() => setFormData({ ...user })}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="action-btn-save"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </div>
@@ -212,7 +293,11 @@ const Settings = () => {
           </div>
         );
       default:
-        return <div className="settings-placeholder">This settings section is coming soon.</div>;
+        return (
+          <div className="settings-placeholder">
+            This settings section is coming soon.
+          </div>
+        );
     }
   };
 
@@ -221,67 +306,61 @@ const Settings = () => {
       <aside className="dashboard-side-nav">
         <div className="dashboard-brand-section">
           <div className="dashboard-brand-icon-box">
-            <span className="material-symbols-outlined">precision_manufacturing</span>
+            <span className="material-symbols-outlined">
+              precision_manufacturing
+            </span>
           </div>
           <div>
             <h2 className="dashboard-brand-title">Precision</h2>
             <p className="dashboard-brand-subtitle">Orchestrator v1.0</p>
           </div>
         </div>
-        
+
         <nav className="dashboard-side-menu">
           <div className="menu-group-label">General</div>
-          <SettingsMenuLink 
-            icon="dashboard" 
-            label="Back to Dashboard" 
-            onClick={() => window.location.href = '/dashboard'}
+          <SettingsMenuLink
+            icon="dashboard"
+            label="Back to Dashboard"
+            onClick={() => (window.location.href = "/dashboard")}
           />
-          
-          <div className="menu-group-label" style={{ marginTop: '24px' }}>Account Settings</div>
-          <SettingsMenuLink 
-            icon="person" 
-            label="Profile" 
-            active={activeSettingTab === 'profile'}
-            onClick={() => setActiveSettingTab('profile')}
-          />
-          <SettingsMenuLink 
-            icon="notifications" 
-            label="Notifications" 
-            active={activeSettingTab === 'notifications'}
-            onClick={() => setActiveSettingTab('notifications')}
-          />
-          <SettingsMenuLink 
-            icon="shield" 
-            label="Security" 
-            active={activeSettingTab === 'security'}
-            onClick={() => setActiveSettingTab('security')}
-          />
-          <SettingsMenuLink 
-            icon="group" 
-            label="Team" 
-            active={activeSettingTab === 'team'}
-            onClick={() => setActiveSettingTab('team')}
-          />
-          <SettingsMenuLink 
-            icon="payments" 
-            label="Billing" 
-            active={activeSettingTab === 'billing'}
-            onClick={() => setActiveSettingTab('billing')}
-          />
+
+          <div className="menu-group-label" style={{ marginTop: "24px" }}>
+            Account Settings
+          </div>
+          {filteredNavItems.map(item => (
+            <SettingsMenuLink
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={activeSettingTab === item.id}
+              onClick={() => setActiveSettingTab(item.id)}
+            />
+          ))}
+          {filteredNavItems.length === 0 && (
+            <p style={{ padding: '0 24px', fontSize: '12px', color: '#94a3b8' }}>
+              No results found for "{searchQuery}"
+            </p>
+          )}
         </nav>
-        
+
         <div className="dashboard-side-footer">
           <SettingsMenuLink icon="help" label="Support" />
-          <SettingsMenuLink icon="logout" label="Logout" logout onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }} />
+          <SettingsMenuLink
+            icon="logout"
+            label="Logout"
+            logout
+            onClick={() => {
+              localStorage.removeItem("token");
+              window.location.href = "/";
+            }}
+          />
         </div>
       </aside>
 
       <div className="dashboard-main-container">
-        <SettingsTopNav user={user} />
+        <SettingsTopNav user={user} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <main className="dashboard-scroll-content">
-          <div className="settings-page-wrapper">
-            {renderSettingContent()}
-          </div>
+          <div className="settings-page-wrapper">{renderSettingContent()}</div>
         </main>
       </div>
     </div>

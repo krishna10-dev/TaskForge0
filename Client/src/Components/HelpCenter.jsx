@@ -25,6 +25,34 @@ const ArticleLink = ({ title }) => (
 );
 
 const HelpCenter = () => {
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const categories = [
+    { icon: "rocket_launch", title: "Getting Started", desc: "New to Orchestrator? Learn the basics of task management and workspace setup.", colorClass: "bg-secondary" },
+    { icon: "groups", title: "Workspaces", desc: "Manage team permissions, invite collaborators, and structure your departments.", colorClass: "bg-secondary" },
+    { icon: "bolt", title: "Automations", desc: "Create powerful workflows using our drag-and-drop automation engine.", colorClass: "bg-tertiary" },
+    { icon: "api", title: "API & Webhooks", desc: "Integrate Orchestrator with your existing tech stack using our robust API.", colorClass: "bg-secondary" },
+    { icon: "credit_card", title: "Billing", desc: "Manage subscriptions, update payment methods, and view your invoices.", colorClass: "bg-secondary" },
+    { icon: "shield", title: "Security", desc: "Set up SSO, 2FA, and review audit logs for enterprise compliance.", colorClass: "bg-secondary" },
+  ];
+
+  const articles = [
+    "How to set up Focus Mode for deep work",
+    "Managing team permissions and role hierarchy",
+    "Connecting Orchestrator to Slack for notifications",
+    "Bulk editing tasks and workflow state changes",
+    "Advanced filtering with JQL-style queries",
+  ];
+
+  const filteredCategories = categories.filter(c => 
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.desc.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredArticles = articles.filter(a => 
+    a.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="help-center-container">
       {/* Hero Section */}
@@ -37,12 +65,14 @@ const HelpCenter = () => {
               className="help-search-input" 
               placeholder="Search for guides, API docs, or troubleshooting..." 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             <div className="help-popular-tags">
               <span className="tag-label">Popular:</span>
-              <a href="#">API Webhooks</a>
-              <a href="#">Focus Mode</a>
-              <a href="#">SSO Config</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setSearchQuery('API'); }}>API Webhooks</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setSearchQuery('Focus'); }}>Focus Mode</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setSearchQuery('SSO'); }}>SSO Config</a>
             </div>
           </div>
         </div>
@@ -50,42 +80,16 @@ const HelpCenter = () => {
 
       {/* Category Grid */}
       <section className="help-categories-grid">
-        <CategoryCard 
-          icon="rocket_launch" 
-          title="Getting Started" 
-          desc="New to Orchestrator? Learn the basics of task management and workspace setup."
-          colorClass="bg-secondary"
-        />
-        <CategoryCard 
-          icon="groups" 
-          title="Workspaces" 
-          desc="Manage team permissions, invite collaborators, and structure your departments."
-          colorClass="bg-secondary"
-        />
-        <CategoryCard 
-          icon="bolt" 
-          title="Automations" 
-          desc="Create powerful workflows using our drag-and-drop automation engine."
-          colorClass="bg-tertiary"
-        />
-        <CategoryCard 
-          icon="api" 
-          title="API & Webhooks" 
-          desc="Integrate Orchestrator with your existing tech stack using our robust API."
-          colorClass="bg-secondary"
-        />
-        <CategoryCard 
-          icon="credit_card" 
-          title="Billing" 
-          desc="Manage subscriptions, update payment methods, and view your invoices."
-          colorClass="bg-secondary"
-        />
-        <CategoryCard 
-          icon="shield" 
-          title="Security" 
-          desc="Set up SSO, 2FA, and review audit logs for enterprise compliance."
-          colorClass="bg-secondary"
-        />
+        {filteredCategories.map((cat, idx) => (
+          <CategoryCard 
+            key={idx}
+            icon={cat.icon} 
+            title={cat.title} 
+            desc={cat.desc}
+            colorClass={cat.colorClass}
+          />
+        ))}
+        {filteredCategories.length === 0 && <p className="no-results">No categories found matching "{searchQuery}"</p>}
       </section>
 
       {/* Popular Articles */}
@@ -94,16 +98,17 @@ const HelpCenter = () => {
           <div className="articles-header">
             <div>
               <span className="kb-label">Knowledge Base</span>
-              <h2 className="section-title">Popular Articles</h2>
+              <h2 className="section-title">
+                {searchQuery ? `Search Results for "${searchQuery}"` : 'Popular Articles'}
+              </h2>
             </div>
-            <a href="#" className="view-all-link">View all articles</a>
+            {!searchQuery && <a href="#" className="view-all-link">View all articles</a>}
           </div>
           <div className="articles-list">
-            <ArticleLink title="How to set up Focus Mode for deep work" />
-            <ArticleLink title="Managing team permissions and role hierarchy" />
-            <ArticleLink title="Connecting Orchestrator to Slack for notifications" />
-            <ArticleLink title="Bulk editing tasks and workflow state changes" />
-            <ArticleLink title="Advanced filtering with JQL-style queries" />
+            {filteredArticles.map((art, idx) => (
+              <ArticleLink key={idx} title={art} />
+            ))}
+            {filteredArticles.length === 0 && <p>No articles found.</p>}
           </div>
         </div>
       </section>

@@ -2,12 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getUserProfile, updateUserProfile, uploadFile } from '../api';
 import './Settings.css';
 
-const Settings = ({ onProfileUpdate }) => {
+const Settings = ({ onProfileUpdate, searchQuery = '' }) => {
   const [activeSettingTab, setActiveSettingTab] = useState('profile');
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({ username: '', email: '', jobTitle: '', avatar: '' });
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
+
+  const navItems = [
+    { id: 'profile', label: 'Profile', icon: 'person' },
+    { id: 'notifications', label: 'Notifications', icon: 'notifications' },
+    { id: 'security', label: 'Security', icon: 'shield' },
+    { id: 'team', label: 'Team', icon: 'group' },
+    { id: 'billing', label: 'Billing', icon: 'payments' },
+  ];
+
+  const filteredNavItems = navItems.filter(item => 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -197,41 +209,21 @@ const Settings = ({ onProfileUpdate }) => {
             <p className="settings-sidebar-subtitle">Manage your workspace</p>
           </div>
           <nav className="settings-nav">
-            <button 
-              className={`settings-nav-item ${activeSettingTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveSettingTab('profile')}
-            >
-              <span className="material-symbols-outlined">person</span>
-              <span>Profile</span>
-            </button>
-            <button 
-              className={`settings-nav-item ${activeSettingTab === 'notifications' ? 'active' : ''}`}
-              onClick={() => setActiveSettingTab('notifications')}
-            >
-              <span className="material-symbols-outlined">notifications</span>
-              <span>Notifications</span>
-            </button>
-            <button 
-              className={`settings-nav-item ${activeSettingTab === 'security' ? 'active' : ''}`}
-              onClick={() => setActiveSettingTab('security')}
-            >
-              <span className="material-symbols-outlined">shield</span>
-              <span>Security</span>
-            </button>
-            <button 
-              className={`settings-nav-item ${activeSettingTab === 'team' ? 'active' : ''}`}
-              onClick={() => setActiveSettingTab('team')}
-            >
-              <span className="material-symbols-outlined">group</span>
-              <span>Team</span>
-            </button>
-            <button 
-              className={`settings-nav-item ${activeSettingTab === 'billing' ? 'active' : ''}`}
-              onClick={() => setActiveSettingTab('billing')}
-            >
-              <span className="material-symbols-outlined">payments</span>
-              <span>Billing</span>
-            </button>
+            {filteredNavItems.map(item => (
+              <button 
+                key={item.id}
+                className={`settings-nav-item ${activeSettingTab === item.id ? 'active' : ''}`}
+                onClick={() => setActiveSettingTab(item.id)}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+            {filteredNavItems.length === 0 && (
+              <p style={{ padding: '20px', color: '#64748b', fontSize: '13px' }}>
+                No settings found matching "{searchQuery}"
+              </p>
+            )}
           </nav>
           <div className="settings-sidebar-footer">
             <button className="settings-nav-item">

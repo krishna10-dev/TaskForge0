@@ -109,7 +109,7 @@ const SidebarSection = ({ title, badge, children }) => (
   </section>
 );
 
-const TeamFeed = () => {
+const TeamFeed = ({ searchQuery = '' }) => {
   const [filter, setFilter] = useState('All');
   const [newComment, setNewComment] = useState('');
   const [activities, setActivities] = useState([]);
@@ -192,11 +192,20 @@ const TeamFeed = () => {
   };
 
   const filteredActivities = activities.filter(act => {
-    if (filter === 'All') return true;
-    if (filter === 'Comments') return act.type === 'comment';
-    if (filter === 'Files') return act.type === 'file';
-    if (filter === 'Tasks') return act.type === 'complete';
-    return true;
+    const matchesFilter = filter === 'All' || 
+                         (filter === 'Comments' && act.type === 'comment') ||
+                         (filter === 'Files' && act.type === 'file') ||
+                         (filter === 'Tasks' && act.type === 'complete');
+    
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+                          act.content?.toLowerCase().includes(searchLower) || 
+                          act.action?.toLowerCase().includes(searchLower) ||
+                          act.target?.toLowerCase().includes(searchLower) ||
+                          act.user?.username?.toLowerCase().includes(searchLower) ||
+                          act.user?.name?.toLowerCase().includes(searchLower);
+
+    return matchesFilter && matchesSearch;
   });
 
   return (

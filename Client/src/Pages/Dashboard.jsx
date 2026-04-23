@@ -20,40 +20,51 @@ const SOCKET_URL = API_URL.replace('/api', '');
 const socket = io(SOCKET_URL);
 
 // Reusable Top Navigation Component
-const DashboardTopNav = ({ user, searchQuery, setSearchQuery }) => (
-  <header className="dashboard-top-nav">
-    <div className="dashboard-nav-left">
-      <div className="dashboard-search-container">
-        <span className="material-symbols-outlined dashboard-search-icon">search</span>
-        <input 
-          className="dashboard-search-input" 
-          placeholder="Search tasks, teams, or projects..." 
-          type="text" 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-    </div>
-    <div className="dashboard-nav-right">
-      <button className="dashboard-nav-icon-btn">
-        <span className="material-symbols-outlined">notifications</span>
-      </button>
-      <Link to="/settings" className="dashboard-nav-icon-btn">
-        <span className="material-symbols-outlined">settings</span>
-      </Link>
-      <div className="dashboard-nav-divider"></div>
-      <div className="dashboard-user-profile">
-        <div className="dashboard-user-info">
-          <p className="dashboard-user-name">{user?.username || 'Guest'}</p>
-          <p className="dashboard-user-role">{user?.jobTitle || 'Lead Orchestrator'}</p>
-        </div>
-        <div className="dashboard-user-avatar">
-          <img alt="User profile" src={user?.avatar || userAvatar} />
+const DashboardTopNav = ({ user, searchQuery, setSearchQuery, activeTab }) => {
+  const getPlaceholder = () => {
+    switch (activeTab) {
+      case 'mytasks': return "Search my tasks...";
+      case 'helpcenter': return "Search help articles...";
+      case 'settings': return "Search settings...";
+      default: return "Search tasks, teams, or projects...";
+    }
+  };
+
+  return (
+    <header className="dashboard-top-nav">
+      <div className="dashboard-nav-left">
+        <div className="dashboard-search-container">
+          <span className="material-symbols-outlined dashboard-search-icon">search</span>
+          <input 
+            className="dashboard-search-input" 
+            placeholder={getPlaceholder()} 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
-    </div>
-  </header>
-);
+      <div className="dashboard-nav-right">
+        <button className="dashboard-nav-icon-btn">
+          <span className="material-symbols-outlined">notifications</span>
+        </button>
+        <Link to="/settings" className="dashboard-nav-icon-btn">
+          <span className="material-symbols-outlined">settings</span>
+        </Link>
+        <div className="dashboard-nav-divider"></div>
+        <div className="dashboard-user-profile">
+          <div className="dashboard-user-info">
+            <p className="dashboard-user-name">{user?.username || 'Guest'}</p>
+            <p className="dashboard-user-role">{user?.jobTitle || 'Lead Orchestrator'}</p>
+          </div>
+          <div className="dashboard-user-avatar">
+            <img alt="User profile" src={user?.avatar || userAvatar} />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
 
 // Reusable Sidebar Link Component
 const DashboardMenuLink = ({ icon, label, active = false, logout = false, onClick }) => (
@@ -192,6 +203,7 @@ const DashboardProjectCard = ({ title, desc, progress, accentColor, progressColo
   </div>
 );
 
+
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -202,6 +214,8 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const tasksRef = useRef([]);
+
+
 
   const fetchTasks = async () => {
     try {
@@ -293,7 +307,6 @@ const Dashboard = () => {
   // Project-based Stats for Distribution
   const projectsData = Array.from(new Set(tasks.map(t => t.project))).map(project => {
     const projectTasks = tasks.filter(t => t.project === project);
-    const completed = projectTasks.filter(t => t.status === 'Done').length;
     // Calculate overall project progress based on individual task progress
     const totalProgress = projectTasks.reduce((acc, t) => acc + (t.progress || 0), 0);
     const progress = projectTasks.length > 0 ? Math.round(totalProgress / projectTasks.length) : 0;
@@ -455,17 +468,17 @@ const Dashboard = () => {
           </>
         );
       case 'mytasks':
-        return <MyTasks initialTasks={tasks} onRefresh={fetchTasks} />;
+        return <MyTasks initialTasks={tasks} searchQuery={searchQuery} onRefresh={fetchTasks} />;
       case 'focusmode':
         return <FocusMode />;
       case 'teamfeed':
-        return <TeamFeed />;
+        return <TeamFeed searchQuery={searchQuery} />;
       case 'analytics':
-        return <Analytics />;
+        return <Analytics searchQuery={searchQuery} />;
       case 'helpcenter':
-        return <HelpCenter />;
+        return <HelpCenter searchQuery={searchQuery} />;
       case 'settings':
-        return <Settings onProfileUpdate={(updatedUser) => setUser(updatedUser)} />;
+        return <Settings searchQuery={searchQuery} onProfileUpdate={(updatedUser) => setUser(updatedUser)} />;
       default:
         return <div>Select a menu item</div>;
     }
@@ -480,7 +493,7 @@ const Dashboard = () => {
         onLogout={handleLogout}
       />
       <div className="dashboard-main-container">
-        <DashboardTopNav user={user} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <DashboardTopNav user={user} searchQuery={searchQuery} setSearchQuery={setSearchQuery} activeTab={activeTab} />
         <main className="dashboard-scroll-content">
           {renderContent()}
         </main>

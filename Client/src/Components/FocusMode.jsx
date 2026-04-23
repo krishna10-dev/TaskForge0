@@ -10,6 +10,7 @@ const FocusMode = () => {
   const [currentTask, setCurrentTask] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [taskSearchQuery, setTaskSearchQuery] = useState('');
 
   // Load custom durations from localStorage or use defaults
   const [durations, setDurations] = useState(() => {
@@ -237,15 +238,35 @@ const FocusMode = () => {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
+            <div className="picker-search" style={{ padding: '0 20px 15px' }}>
+              <div className="dashboard-search-container" style={{ width: '100%', background: '#f1f5f9' }}>
+                <span className="material-symbols-outlined dashboard-search-icon">search</span>
+                <input 
+                  className="dashboard-search-input" 
+                  placeholder="Search tasks..." 
+                  type="text" 
+                  value={taskSearchQuery}
+                  onChange={(e) => setTaskSearchQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
             <div className="picker-list">
-              {tasks.length > 0 ? (
-                tasks.map(task => (
+              {tasks.filter(t => 
+                t.title.toLowerCase().includes(taskSearchQuery.toLowerCase()) || 
+                t.project.toLowerCase().includes(taskSearchQuery.toLowerCase())
+              ).length > 0 ? (
+                tasks.filter(t => 
+                  t.title.toLowerCase().includes(taskSearchQuery.toLowerCase()) || 
+                  t.project.toLowerCase().includes(taskSearchQuery.toLowerCase())
+                ).map(task => (
                   <div 
                     key={task.id} 
                     className={`picker-item ${currentTask?.id === task.id ? 'active' : ''}`}
                     onClick={() => {
                       setCurrentTask(task);
                       setShowTaskPicker(false);
+                      setTaskSearchQuery('');
                     }}
                   >
                     <div className="picker-item-info">

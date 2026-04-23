@@ -5,9 +5,10 @@ require('dotenv').config();
 let sequelize;
 
 if (process.env.DATABASE_URL) {
-  // Live Cloud Database (MySQL/Postgres)
+  // Live Cloud Database (Neon - Postgres / Aiven - MySQL)
   sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: process.env.DB_DIALECT || 'mysql',
+    // Neon automatically uses postgres, but let's be explicit
+    dialect: process.env.DB_DIALECT || (process.env.DATABASE_URL.startsWith('postgres') ? 'postgres' : 'mysql'),
     logging: false,
     dialectOptions: {
       ssl: {

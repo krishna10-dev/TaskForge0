@@ -209,12 +209,13 @@ const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
                     type="range" 
                     min="0" 
                     max="100" 
-                    step="5"
+                    step="10"
                     value={editedTask.progress || 0}
                     onChange={(e) => setEditedTask({...editedTask, progress: parseInt(e.target.value)})}
                     disabled={!isEditing}
                     style={{ flex: 1, accentColor: 'var(--dashboard-primary)' }}
                   />
+                  
                   <span style={{ fontWeight: '600', color: 'var(--dashboard-primary)', width: '40px' }}>{editedTask.progress || 0}%</span>
                 </div>
               </div>
@@ -232,6 +233,7 @@ const TaskDetailsModal = ({ task, onClose, onUpdate, onDelete }) => {
                              att.fileType.includes('video') ? 'movie' : 'description'}
                           </span>
                           <span className="attachment-name">{att.fileName}</span>
+                          <button style={{border: 'none'}}>Remove</button>
                         </a>
                       ))}
                     </div>
@@ -349,15 +351,20 @@ const KanbanColumn = ({ title, count, color, onDrop, children }) => (
   </div>
 );
 
-const MyTasks = ({ initialTasks = [], onRefresh }) => {
+const MyTasks = ({ initialTasks = [], searchQuery = '', onRefresh }) => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [projectFilter, setProjectFilter] = useState('All');
 
   const projects = ['All', ...new Set(initialTasks.map(t => t.project))];
 
-  const filteredTasks = projectFilter === 'All' 
-    ? initialTasks 
-    : initialTasks.filter(t => t.project === projectFilter);
+  const filteredTasks = initialTasks.filter(t => {
+    const matchProject = projectFilter === 'All' || t.project === projectFilter;
+    const searchLower = searchQuery.toLowerCase();
+    const matchSearch = t.title.toLowerCase().includes(searchLower) || 
+                        (t.description && t.description.toLowerCase().includes(searchLower)) ||
+                        (t.project && t.project.toLowerCase().includes(searchLower));
+    return matchProject && matchSearch;
+  });
 
   const getTasksByStatus = (status) => filteredTasks.filter(task => task.status === status);
 

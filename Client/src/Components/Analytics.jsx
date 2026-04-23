@@ -21,7 +21,7 @@ const MetricCard = ({ label, value, trend, trendType, footer }) => (
   </div>
 );
 
-const Analytics = () => {
+const Analytics = ({ searchQuery = '' }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,15 +40,22 @@ const Analytics = () => {
     }
   };
 
+  const filteredTasks = tasks.filter(task => {
+    const searchLower = searchQuery.toLowerCase();
+    return task.title.toLowerCase().includes(searchLower) || 
+           (task.description && task.description.toLowerCase().includes(searchLower)) ||
+           (task.project && task.project.toLowerCase().includes(searchLower));
+  });
+
   // Calculations
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'Done').length;
+  const totalTasks = filteredTasks.length;
+  const completedTasks = filteredTasks.filter(t => t.status === 'Done').length;
   const pendingTasks = totalTasks - completedTasks;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const highPriorityTasks = tasks.filter(t => t.priority === 'High' && t.status !== 'Done').length;
+  const highPriorityTasks = filteredTasks.filter(t => t.priority === 'High' && t.status !== 'Done').length;
 
   // Project Distribution for Pie Chart
-  const projectCounts = tasks.reduce((acc, task) => {
+  const projectCounts = filteredTasks.reduce((acc, task) => {
     acc[task.project] = (acc[task.project] || 0) + 1;
     return acc;
   }, {});
